@@ -344,16 +344,16 @@ man 3 str<TAB><TAB>
 其中TAB代表键盘上的TAB键.   
 在这里会看到很多以str开头的函数, 如strlen(), strcpy()等函数：  
 ```
-strcasecmp                strerrordesc_np           strict                    strpbrk                   strtol
-strcasestr                strerror_l                string                    strptime                  strtold
-strcat                    strerrorname_np           string_to_av_perm         strrchr                   strtoll
-strchr                    strerror_r                string_to_security_class  strsep                    strtoq
-strchrnul                 strfmon                   strlen                    strsignal                 strtoul
-strcmp                    strfmon_l                 strncasecmp               strspn                    strtoull
-strcoll                   strfromd                  strncat                   strstr                    strtoumax
-strcpy                    strfromf                  strncmp                   strtod                    strtouq
-strcspn                   strfroml                  strncpy                   strtof                    strverscmp
-strdup                    strfry                    strndup                   strtoimax                 strxfrm
+strcasecmp                strerrordesc_np           strict                    strpbrk                strtol
+strcasestr                strerror_l                string                    strptime               strtold
+strcat                    strerrorname_np           string_to_av_perm         strrchr                strtoll
+strchr                    strerror_r                string_to_security_class  strsep                 strtoq
+strchrnul                 strfmon                   strlen                    strsignal              strtoul
+strcmp                    strfmon_l                 strncasecmp               strspn                 strtoull
+strcoll                   strfromd                  strncat                   strstr                 strtoumax
+strcpy                    strfromf                  strncmp                   strtod                 strtouq
+strcspn                   strfroml                  strncpy                   strtof                 strverscmp
+strdup                    strfry                    strndup                   strtoimax              strxfrm
 strdupa                   strftime                  strndupa                  strtok                    
 strerror                  strftime_l                strnlen                   strtok_r                  
 ```
