@@ -1,1 +1,1 @@
-# “一生一芯” RISC-V CPU设计学习笔记  
+# “One Student One Chip” Program - RISC-V CPU Design
