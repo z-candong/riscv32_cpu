@@ -378,15 +378,87 @@ strerror                  strftime_l                strnlen                   st
 ```Bash
 man sscanf
 ```
+sscanf()函数部分功能信息如下：  
+```
+sscanf(3)
+
+名称
+       sscanf, vsscanf - 输入字符串格式转换
+
+库
+       标准C库 (libc, -lc)
+
+摘要
+       #include <stdio.h>
+
+       int sscanf(const char *restrict str,
+                  const char *restrict format, ...);
+
+       #include <stdarg.h>
+
+       int vsscanf(const char *restrict str,
+                  const char *restrict format, va_list ap);
+
+   glibc功能测试宏要求（参见feature_test_macros(7)):
+
+       vsscanf():
+           _ISOC99_SOURCE || _POSIX_C_SOURCE >= 200112L
+
+描述
+       sscanf()函数族根据下面描述的format扫描格式化的输入。  
+       此格式可能包含转换说明；如果有的话，这些转换的结果将存储在其后跟随的指针参数所指向的位置。
+       每个指针参数必须是指向由相应的转换说明返回值适当类型的数据。  
+       如果format中的转换说明数量超过指针参数的数量，则结果未定义。
+       如果指针参数的数量超过format中的转换说明数量，则多余的指针参数会被评估，但除此之外会被忽略。  
+       sscanf()这些函数从str指向的字符串读取其输入。  
+       vsscanf()函数类似于vsprintf(3)。  
+       格式字符串由一系列指令组成，这些指令描述如何处理输入字符序列。  
+       如果指令处理失败，不再读取进一步的输入，并且sscanf()返回。
+       一个“失败”可以是以下两种情况之一：输入失败，意味着不可用的输入字符，或者匹配失败，这意味着输入不适当（见下文）。
 
 
 
+```
+sscanf()函数示例代码：  
+```C
+#include <stdio.h> // 包含标准输入输出函数的定义，比如printf和sscanf
+#include <stdlib.h> // 包含动态内存分配和free函数的定义
+#include <errno.h> // 包含错误号变量errno的定义
 
-##单步执行
+int main() {
+    // 定义并初始化一个字符串str，作为sscanf函数的输入源。
+    // 你可以将这个字符串改成任何你想要解析的小写字母组成的字符串
+    char *str = "example"; 
 
-##打印寄存器
+    char *p = NULL; // 定义一个字符指针p，并初始化为NULL，用于存储从str读取的数据
+    int n; // 定义一个整数n，用于存储sscanf函数的返回值
 
-##扫描内存
+    errno = 0; // 初始化全局变量errno为0，以确保在调用sscanf之前没有设置错误状态
+
+    // 使用sscanf尝试从str中按照格式"%m[a-z]"读取数据到指针p指向的位置
+    // "%m[a-z]"表示匹配小写a至z中的任意字符，直到遇到不匹配的字符为止，并且分配足够的内存来存储这些字符
+    n = sscanf(str, "%m[a-z]", &p);
+
+    // 根据sscanf的返回值n判断操作是否成功
+    if (n == 1) { // 如果成功读取了一个字符串
+        printf("read: %s\n", p); // 打印读取到的字符串
+        free(p); // 释放分配给存储字符串的内存
+    } else if (errno != 0) { // 如果发生了错误（通过检查errno）
+        perror("sscanf"); // 打印与最近一次错误相关的描述性信息
+    } else { // 如果没有发生错误但也没有匹配任何字符
+        fprintf(stderr, "No matching characters\n"); // 向标准错误流打印一条消息
+    }
+
+    return 0; // 程序正常退出，返回0表示执行成功
+}
+```
+
+
+## 单步执行
+
+## 打印寄存器
+
+## 扫描内存
 
 
 
