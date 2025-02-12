@@ -246,14 +246,151 @@ static int decode_exec(Decode *s) {
   return 0;
 }
 ```
-译码的目的是得到指令的操作(即操作码opcode)和操作对象(即操作数operands), 这主要是通过查看指令的opcode来决定的.  
-不同ISA的opcode会出现在指令的不同位置, 我们只需要根据指令的编码格式, 从取出的指令中识别出相应的opcode即可.
+译码的目的是得到指令的操作(即操作码opcode)和操作对象(即操作数operands).  
+不同ISA的opcode会出现在指令的不同位置, 只需根据指令的编码格式, 从取出的指令中识别出相应的opcode即可.  
 
+和YEMU相比, NEMU使用一种抽象层次更高的译码方式: 模式匹配, NEMU可以通过一个模式字符串来指定指令中opcode.  
+例如在riscv32中有如下模式:  
+```C
+INSTPAT_START();
+INSTPAT("??????? ????? ????? ??? ????? 00101 11", auipc, U, R(rd) = s->pc + imm);
+// ...
+INSTPAT_END();
+```
+其中INSTPAT(意思是instruction pattern)是一个宏(在nemu/include/cpu/decode.h中定义), 它用于定义一条模式匹配规则. 
+宏INSTPAT代码如下:  
+```C
+// --- pattern matching wrappers for decode ---
+#define INSTPAT(pattern, ...) do { \
+  uint64_t key, mask, shift; \
+  pattern_decode(pattern, STRLEN(pattern), &key, &mask, &shift); \
+  if ((((uint64_t)INSTPAT_INST(s) >> shift) & mask) == key) { \
+    INSTPAT_MATCH(s, ##__VA_ARGS__); \
+    goto *(__instpat_end); \
+  } \
+} while (0)
+```
+宏INSTPAT格式如下:  
+```
+INSTPAT(模式字符串, 指令名称, 指令类型, 指令执行操作);
+```
+模式字符串中只允许出现4种字符:  
+• 0表示相应的位只能匹配0  
+• 1表示相应的位只能匹配1  
+• ?表示相应的位可以匹配0或1  
+• 空格是分隔符, 只用于提升模式字符串的可读性, 不参与匹配  
 
-和YEMU相比, NEMU使用一种抽象层次更高的译码方式: 模式匹配, NEMU可以通过一个模式字符串来指定指令中opcode, 例如在riscv32中有如下模式:
+指令名称在代码中仅当注释使用, 不参与宏展开; 指令类型用于后续译码过程; 而指令执行操作则是通过C代码来模拟指令执行的真正行为.  
 
+此外, nemu/include/cpu/decode.h中还定义了宏INSTPAT_START和INSTPAT_END. 对应代码如下:  
+```C
+#define INSTPAT_START(name) { const void * __instpat_end = &&concat(__instpat_end_, name);
+#define INSTPAT_END(name)   concat(__instpat_end_, name): ; }
+```
+INSTPAT又使用了另外两个宏INSTPAT_INST和INSTPAT_MATCH, 它们在nemu/src/isa/riscv32/inst.c中定义. 对应代码如下:  
+```C
+#define INSTPAT_INST(s) ((s)->isa.inst)
+#define INSTPAT_MATCH(s, name, type, ... /* execute body */ ) { \
+  int rd = 0; \
+  word_t src1 = 0, src2 = 0, imm = 0; \
+  decode_operand(s, &rd, &src1, &src2, &imm, concat(TYPE_, type)); \
+  __VA_ARGS__ ; \
+}
+```
+对上述代码进行宏展开并简单整理代码之后, 最后将会得到:  
+```C
+{ const void * __instpat_end = &&__instpat_end_;
+do {
+  uint64_t key, mask, shift;
+  pattern_decode("??????? ????? ????? ??? ????? 00101 11", 38, &key, &mask, &shift);
+  if ((((uint64_t)s->isa.inst >> shift) & mask) == key) {
+    {
+      int rd = 0;
+      word_t src1 = 0, src2 = 0, imm = 0;
+      decode_operand(s, &rd, &src1, &src2, &imm, TYPE_U);
+      R(rd) = s->pc + imm;
+    }
+    goto *(__instpat_end);
+  }
+} while (0);
+// ...
+__instpat_end_: ; }
+```
+上述代码中的&&__instpat_end_使用了GCC提供的标签地址扩展功能, goto语句将会跳转到最后的__instpat_end_标签.   
+
+此外, pattern_decode()函数在nemu/include/cpu/decode.h中定义, 它用于将模式字符串转换成3个整型变量.   
+pattern_decode()函数代码如下:   
+```C
+// --- pattern matching mechanism ---
+__attribute__((always_inline))
+static inline void pattern_decode(const char *str, int len,
+    uint64_t *key, uint64_t *mask, uint64_t *shift) {
+  uint64_t __key = 0, __mask = 0, __shift = 0;
+#define macro(i) \
+  if ((i) >= len) goto finish; \
+  else { \
+    char c = str[i]; \
+    if (c != ' ') { \
+      Assert(c == '0' || c == '1' || c == '?', \
+          "invalid character '%c' in pattern string", c); \
+      __key  = (__key  << 1) | (c == '1' ? 1 : 0); \
+      __mask = (__mask << 1) | (c == '?' ? 0 : 1); \
+      __shift = (c == '?' ? __shift + 1 : 0); \
+    } \
+  }
+
+#define macro2(i)  macro(i);   macro((i) + 1)
+#define macro4(i)  macro2(i);  macro2((i) + 2)
+#define macro8(i)  macro4(i);  macro4((i) + 4)
+#define macro16(i) macro8(i);  macro8((i) + 8)
+#define macro32(i) macro16(i); macro16((i) + 16)
+#define macro64(i) macro32(i); macro32((i) + 32)
+  macro64(0);
+  panic("pattern too long");
+#undef macro
+finish:
+  *key = __key >> __shift;
+  *mask = __mask >> __shift;
+  *shift = __shift;
+}
+```
+pattern_decode()函数将模式字符串中的0和1抽取到整型变量key中, mask表示key的掩码, 而shift则表示opcode距离最低位的比特数量, 用于帮助编译器进行优化.   
+
+考虑PA1中介绍的内建客户程序中的如下指令:  
+```
+0x00000297   auipc t0,0
+```
+具体地, 上述例子中:
+```C
+key   = 0x17;
+mask  = 0x7f;
+shift = 0;
+```
+NEMU取指令的时候会把指令记录到s->isa.inst中, 此时指令满足上述宏展开的if语句, 表示匹配到auipc指令的编码, 因此将会进行进一步的译码操作.
+
+刚才我们只知道了指令的具体操作(比如auipc是将当前PC值与立即数相加并写入寄存器), 但我们还是不知道操作对象(比如立即数是多少, 写入到哪个寄存器). 为了解决这个问题, 代码需要进行进一步的译码工作, 这是通过调用decode_operand()函数来完成的. 这个函数将会根据传入的指令类型type来进行操作数的译码, 译码结果将记录到函数参数rd, src1, src2和imm中, 它们分别代表目的操作数的寄存器号码, 两个源操作数和立即数.
+
+我们会发现, 类似寄存器和立即数这些操作数, 其实是非常常见的操作数类型. 为了进一步实现操作数译码和指令译码的解耦, 我们对这些操作数的译码进行了抽象封装:
+
+框架代码定义了src1R()和src2R()两个辅助宏, 用于寄存器的读取结果记录到相应的操作数变量中
+框架代码还定义了immI等辅助宏, 用于从指令中抽取出立即数
+有了这些辅助宏, 我们就可以用它们来方便地编写decode_operand()了, 例如RISC-V中I型指令的译码过程可以通过如下代码实现:
+```C
+case TYPE_I: src1R(); immI(); break;
+```
+另外补充几点说明:
+
+decode_operand中用到了宏BITS和SEXT, 它们均在nemu/include/macro.h中定义, 分别用于位抽取和符号扩展
+decode_operand会首先统一对目标操作数进行寄存器操作数的译码, 即调用*rd = BITS(i, 11, 7), 不同的指令类型可以视情况使用rd
+在模式匹配过程的最后有一条inv的规则, 表示"若前面所有的模式匹配规则都无法成功匹配, 则将该指令视为非法指令
 
 ### 执行(execute, EX)
+译码阶段结束之后, 代码将会执行模式匹配规则中指定的指令执行操作, 这部分操作会用到译码的结果, 并通过C代码来模拟指令执行的真正行为. 例如对于auipc指令, 由于译码阶段已经把U型立即数记录到操作数imm中了, 我们只需要通过R(rd) = s->pc + imm将立即数与当前PC值相加并写入目标寄存器中, 这样就完成了指令的执行.
+
+指令执行的阶段结束之后, decode_exec()函数将会返回0, 并一路返回到exec_once()函数中. 不过目前代码并没有使用这个返回值, 因此可以忽略它.
+
+
+
 
 
 ### 更新PC
