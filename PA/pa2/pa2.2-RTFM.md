@@ -64,7 +64,7 @@ static void execute(uint64_t n) {
   Decode s;
   for (;n > 0; n --) {
     exec_once(&s, cpu.pc); // 调用exec_once()函数
-    g_nr_guest_inst ++;
+    g_nr_guest_inst ++; // 记录客户指令的计数器+1
     trace_and_difftest(&s, cpu.pc);
     if (nemu_state.state != NEMU_RUNNING) break;
     IFDEF(CONFIG_DEVICE, device_update());
@@ -75,10 +75,10 @@ execute()函数会调用exec_once()函数.
 exec_once()函数代码如下:  
 ```C
 static void exec_once(Decode *s, vaddr_t pc) {
-  s->pc = pc;
-  s->snpc = pc;
+  s->pc = pc; // 将当前pc值赋给s的成员变量pc
+  s->snpc = pc; // 将当前pc值赋给s的成员变量snpc
   isa_exec_once(s);
-  cpu.pc = s->dnpc;
+  cpu.pc = s->dnpc; 
 #ifdef CONFIG_ITRACE
   char *p = s->logbuf;
   p += snprintf(p, sizeof(s->logbuf), FMT_WORD ":", s->pc);
@@ -132,13 +132,37 @@ typedef concat(__GUEST_ISA__, _CPU_state) CPU_state;
 typedef concat(__GUEST_ISA__, _ISADecodeInfo) ISADecodeInfo; 
 ```
 类型别名ISADecodeInfo指向由宏``concat(__GUEST_ISA__, _ISADecodeInfo)``展开后得到的具体类型.  
+其中, ``concat``宏定义位于nemu/include/macro.h中(可在/nemu下通过``grep -r ‘define.*concat’ ./``命令快速找到):  
+```C
+// macro concatenation
+// ##是C语言预处理器中的标记粘贴操作符，可将两个标记(tokens)连接为一个单一的标记
+#define concat_temp(x, y) x ## y  
+#define concat(x, y) concat_temp(x, y)
+#define concat3(x, y, z) concat(concat(x, y), z)
+#define concat4(x, y, z, w) concat3(concat(x, y), z, w)
+#define concat5(x, y, z, v, w) concat4(concat(x, y), z, v, w)
+```
+``__GUEST_ISA__``定义则位于nemu/Makefile中:
+```Makefile
+# Extract variabls from menuconfig
+GUEST_ISA ?= $(call remove_quote,$(CONFIG_ISA))
+ENGINE ?= $(call remove_quote,$(CONFIG_ENGINE))
+NAME    = $(GUEST_ISA)-nemu-$(ENGINE)
 
-
-
+CFLAGS  += $(CFLAGS_BUILD) $(CFLAGS_TRACE) -D__GUEST_ISA__=$(GUEST_ISA)
+```
+``-D__GUEST_ISA__=$(GUEST_ISA)``表示定义一个宏``__GUEST_ISA__``, 并将其设置为变量``$(GUEST_ISA)``的值.  
+变量``$(GUEST_ISA)``的值则从Kconfig配置系统中提取.  
 
 exec_once()会先把当前的PC保存到s的成员pc和snpc中, 其中s->pc就是当前指令的PC, 而s->snpc则是下一条指令的PC, 这里的snpc是"static next PC"的意思.
 
-然后代码会调用isa_exec_once()函数(位于nemu/src/isa/$ISA/inst.c).  
+然后代码会调用isa_exec_once()函数(位于nemu/src/isa/$ISA/inst.c).   
+```C
+int isa_exec_once(Decode *s) {
+  s->isa.inst = inst_fetch(&s->snpc, 4);
+  return decode_exec(s);
+}
+```
 这是因为执行指令的具体过程是和ISA相关的, 此处先不深究isa_exec_once()的细节.   
 isa_exec_once()会随着取指的过程修改s->snpc的值, 使得从isa_exec_once()返回后s->snpc正好为下一条指令的PC.   
 接下来代码将会通过s->dnpc来更新PC, 这里的dnpc是"dynamic next PC"的意思. 关于snpc和dnpc的区别, 我们会在下文进行说明.
