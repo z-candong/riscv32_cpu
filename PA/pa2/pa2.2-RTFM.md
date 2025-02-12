@@ -156,7 +156,7 @@ CFLAGS  += $(CFLAGS_BUILD) $(CFLAGS_TRACE) -D__GUEST_ISA__=$(GUEST_ISA)
 
 exec_once()会先把当前的PC保存到s的成员pc和snpc中, 其中s->pc就是当前指令的PC, 而s->snpc则是下一条指令的PC, 这里的snpc是"static next PC"的意思.
 
-然后代码会调用isa_exec_once()函数(位于nemu/src/isa/$ISA/inst.c).   
+然后代码会调用isa_exec_once()函数(位于nemu/src/isa/$ISA/inst.c, 即nemu/src/isa/riscv32/inst.c).   
 ```C
 int isa_exec_once(Decode *s) {
   s->isa.inst = inst_fetch(&s->snpc, 4);
@@ -173,13 +173,63 @@ isa_exec_once()会随着取指的过程修改s->snpc的值, 使得从isa_exec_on
 
 事实上, exec_once()函数覆盖了指令周期的所有阶段: 取指, 译码, 执行, 更新PC, 接下来看NEMU是如何实现指令周期的每一个阶段的.  
 
-
-
 ### 取指(instruction fetch, IF)
+isa_exec_once()做的第一件事情就是取指令.  
+```C
+int isa_exec_once(Decode *s) {
+  s->isa.inst = inst_fetch(&s->snpc, 4);
+  return decode_exec(s);
+}
+```
+从上述isa_exec_once()代码中可见, 取指令工作由函数inst_fetch()(在nemu/include/cpu/ifetch.h中定义)实现. 具体代码如下:  
+```C
+#ifndef __CPU_IFETCH_H__
+
+#include <memory/vaddr.h>
+
+static inline uint32_t inst_fetch(vaddr_t *pc, int len) {
+  uint32_t inst = vaddr_ifetch(*pc, len);
+  (*pc) += len;
+  return inst;
+}
+
+#endif
+\
+```
+inst_fetch()最终会根据参数len来调用vaddr_ifetch()(在nemu/src/memory/vaddr.c中定义). vaddr_ifetch()代码如下:  
+```C
+word_t vaddr_ifetch(vaddr_t addr, int len) {
+  return paddr_read(addr, len);
+}
+```
+可见, vaddr_ifetch()又会通过paddr_read()来访问物理内存中的内容.  
+paddr_read()函数位于nemu/src/memory/paddr.c中, 代码如下:  
+```C
+word_t paddr_read(paddr_t addr, int len) {
+  if (likely(in_pmem(addr))) return pmem_read(addr, len);
+  IFDEF(CONFIG_DEVICE, return mmio_read(addr, len));
+  out_of_bound(addr);
+  return 0;
+}
+```
+因此, 取指操作的本质只不过就是一次内存的访问而已.
+
+isa_exec_once()在调用inst_fetch()的时候传入了s->snpc的地址.  
+因此inst_fetch()最后还会根据len来更新s->snpc, 从而让s->snpc指向下一条指令.  
+
+### 译码(instruction decode, ID)  
+在int isa_exec_once()函数执行完内部取指函数后.   
+接下来代码会进入decode_exec()函数(位于nemu/src/isa/riscv32/inst.c), 它首先进行的是译码相关的操作. 代码如下:   
+```C
+
+```
 
 
-### 译码(instruction decode, ID)
 
+
+译码的目的是得到指令的操作和操作对象, 这主要是通过查看指令的opcode来决定的. 不同ISA的opcode会出现在指令的不同位置, 我们只需要根据指令的编码格式, 从取出的指令中识别出相应的opcode即可.
+
+和YEMU相比, NEMU使用一种抽象层次更高的译码方式: 模式匹配, NEMU可以通过一个模式字符串来指定指令中opcode, 例如在riscv32中有如下模式:
 
 ### 执行(execute, EX)
 
@@ -192,6 +242,9 @@ isa_exec_once()会随着取指的过程修改s->snpc的值, 使得从isa_exec_on
 
 ### 运行第一个C程序
 
+```C
+
+```
 
 ### 运行更多的程序
 未测试代码永远是错的, 因此需要更多的测试用例来测试你的NEMU。  
