@@ -219,17 +219,39 @@ isa_exec_once()在调用inst_fetch()的时候传入了s->snpc的地址.
 
 ### 译码(instruction decode, ID)  
 在int isa_exec_once()函数执行完内部取指函数后.   
-接下来代码会进入decode_exec()函数(位于nemu/src/isa/riscv32/inst.c), 它首先进行的是译码相关的操作. 代码如下:   
+接下来代码会进入decode_exec()函数(位于nemu/src/isa/riscv32/inst.c), 它进行的是译码相关的操作. 代码如下:   
 ```C
+static int decode_exec(Decode *s) {
+  s->dnpc = s->snpc;
 
+#define INSTPAT_INST(s) ((s)->isa.inst)
+#define INSTPAT_MATCH(s, name, type, ... /* execute body */ ) { \
+  int rd = 0; \
+  word_t src1 = 0, src2 = 0, imm = 0; \
+  decode_operand(s, &rd, &src1, &src2, &imm, concat(TYPE_, type)); \
+  __VA_ARGS__ ; \
+}
+
+  INSTPAT_START();
+  INSTPAT("??????? ????? ????? ??? ????? 00101 11", auipc  , U, R(rd) = s->pc + imm);
+  INSTPAT("??????? ????? ????? 100 ????? 00000 11", lbu    , I, R(rd) = Mr(src1 + imm, 1));
+  INSTPAT("??????? ????? ????? 000 ????? 01000 11", sb     , S, Mw(src1 + imm, 1, src2));
+
+  INSTPAT("0000000 00001 00000 000 00000 11100 11", ebreak , N, NEMUTRAP(s->pc, R(10))); // R(10) is $a0
+  INSTPAT("??????? ????? ????? ??? ????? ????? ??", inv    , N, INV(s->pc));
+  INSTPAT_END();
+
+  R(0) = 0; // reset $zero to 0
+
+  return 0;
+}
 ```
+译码的目的是得到指令的操作(即操作码opcode)和操作对象(即操作数operands), 这主要是通过查看指令的opcode来决定的.  
+不同ISA的opcode会出现在指令的不同位置, 我们只需要根据指令的编码格式, 从取出的指令中识别出相应的opcode即可.
 
-
-
-
-译码的目的是得到指令的操作和操作对象, 这主要是通过查看指令的opcode来决定的. 不同ISA的opcode会出现在指令的不同位置, 我们只需要根据指令的编码格式, 从取出的指令中识别出相应的opcode即可.
 
 和YEMU相比, NEMU使用一种抽象层次更高的译码方式: 模式匹配, NEMU可以通过一个模式字符串来指定指令中opcode, 例如在riscv32中有如下模式:
+
 
 ### 执行(execute, EX)
 
