@@ -105,11 +105,36 @@ static void exec_once(Decode *s, vaddr_t pc) {
 #endif
 }
 ```
-
-exec_once()接受一个Decode类型的结构体指针s.  
-这个结构体用于存放在执行一条指令过程中所需的信息, 包括:  
+exec_once()接受一个指向Decode结构体的指针s.  
+Decode结构体定义位于“nemu/include/cpu/decode.h”中, 相关代码如下:  
+```C
+typedef struct Decode {
+  vaddr_t pc;
+  vaddr_t snpc; // static next pc
+  vaddr_t dnpc; // dynamic next pc
+  ISADecodeInfo isa;
+  IFDEF(CONFIG_ITRACE, char logbuf[128]);
+} Decode;
+```
+Decode结构体用于存放在执行一条指令过程中所需的信息, 包括:  
 1. 指令的PC, 下一条指令的PC等.  
-2. 一些ISA相关的信息, NEMU用一个结构类型ISADecodeInfo来对这些信息进行抽象, 具体的定义在"nemu/src/isa/$ISA/include/isa-def.h"中.  
+2. 一些ISA相关的信息, NEMU用一个结构类型ISADecodeInfo来对这些信息进行抽象, 具体的定义在"nemu/src/isa/$ISA/include/isa-def.h"中.   
+
+ISADecodeInfo相关代码如下:  
+类型别名ISADecodeInfo的定义位于“nemu/include/isa.h”中:  
+```C
+// Located at src/isa/$(GUEST_ISA)/include/isa-def.h
+#include <isa-def.h>
+
+// The macro `__GUEST_ISA__` is defined in $(CFLAGS).
+// It will be expanded as "x86" or "mips32" ...
+typedef concat(__GUEST_ISA__, _CPU_state) CPU_state;
+typedef concat(__GUEST_ISA__, _ISADecodeInfo) ISADecodeInfo; 
+```
+类型别名ISADecodeInfo指向由宏``concat(__GUEST_ISA__, _ISADecodeInfo)``展开后得到的具体类型.  
+
+
+
 
 exec_once()会先把当前的PC保存到s的成员pc和snpc中, 其中s->pc就是当前指令的PC, 而s->snpc则是下一条指令的PC, 这里的snpc是"static next PC"的意思.
 
