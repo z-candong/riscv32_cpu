@@ -15,7 +15,8 @@
 
 #include "sdb.h" // 包含调试器相关功能的头文件
 
-#define NR_WP 32 // 定义最多可以同时存在的监视点数量
+//定义最多可以同时存在的监视点数量
+#define NR_WP 32 
 
 // 监视点结构体定义
 typedef struct watchpoint {
