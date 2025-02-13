@@ -21,8 +21,9 @@ DIRS-BLACKLIST-$(CONFIG_TARGET_AM) += src/monitor/sdb # 条件指定不参与编
 SHARE = $(if $(CONFIG_TARGET_SHARE),1,0)  # 定义SHARE变量：当CONFIG_TARGET_SHARE被定义且为真，则SHARE为1，否则为0
 LIBS += $(if $(CONFIG_TARGET_NATIVE_ELF),-lreadline -ldl -pie,)。# 向链接库列表中添加库: 当CONFIG_TARGET_NATIVE_ELF被定义且为真，则将-lreadline -ldl -pie添加到LIBS中
 
-ifdef mainargs
-ASFLAGS += -DBIN_PATH=\"$(mainargs)\"
+ifdef mainargs  # 如果定义变量mainargs
+ASFLAGS += -DBIN_PATH=\"$(mainargs)\"  # 则将-DBIN_PATH="$(mainargs)"添加到汇编器标志ASFLAGS中。添加后在编译过程中，宏BIN_PATH会被设置为变量mainargs的值
 endif
-SRCS-$(CONFIG_TARGET_AM) += src/am-bin.S
-.PHONY: src/am-bin.S
+SRCS-$(CONFIG_TARGET_AM) += src/am-bin.S  # 当变量CONFIG_TARGET_AM被定义并且其值为真时，才会将src/am-bin.S加入到SRCS-y中，从而指定编译文件am-bin.S
+.PHONY: src/am-bin.S  # 声明src/am-bin.S是一个伪目标（phony target），伪目标不会检查同名文件是否存在或是否需要重新构建，而是每次都会执行相应的规则。
+                      # 此处指即使存在src/am-bin.S文件，也会强制重新处理该文件。
