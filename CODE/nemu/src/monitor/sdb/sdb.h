@@ -13,11 +13,16 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
-#ifndef __SDB_H__
+#ifndef __SDB_H__ // 防止头文件重复包含
 #define __SDB_H__
 
-#include <common.h>
+#include <common.h> // 包含项目中定义的一些通用功能和类型定义
 
+// 声明 expr 函数
+// 参数 e 是要解析和计算的表达式字符串
+// 参数 success 是一个指向布尔值的指针，用于指示表达式解析是否成功
+// 返回值是计算得到的结果，类型为 word_t
 word_t expr(char *e, bool *success);
 
-#endif
+#endif // 结束条件编译块
+
