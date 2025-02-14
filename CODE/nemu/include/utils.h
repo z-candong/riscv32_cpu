@@ -19,7 +19,7 @@
 #include <common.h>
 
 // ----------- state -----------
-
+// 枚举类型的成员如果没有显式赋值，则默认情况下会从0开始依次递增
 enum { NEMU_RUNNING, NEMU_STOP, NEMU_END, NEMU_ABORT, NEMU_QUIT };
 
 typedef struct {
