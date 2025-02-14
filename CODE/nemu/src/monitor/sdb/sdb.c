@@ -131,7 +131,7 @@ void sdb_mainloop() {
     int i;
     for (i = 0; i < NR_CMD; i ++) {
       if (strcmp(cmd, cmd_table[i].name) == 0) {
-        if (cmd_table[i].handler(args) < 0) { return; } // 调用命令处理函数
+        if (cmd_table[i].handler(args) < 0) { return; } // 调用命令处理函数, 并检查返回值
         break;
       }
     }
