@@ -15,10 +15,14 @@
 
 #include <utils.h>
 
+// 初始化NEMU状态结构体，初始状态为停止（NEMU_STOP）
 NEMUState nemu_state = { .state = NEMU_STOP };
 
+// 函数用于判断当前退出状态是否为错误状态
 int is_exit_status_bad() {
-  int good = (nemu_state.state == NEMU_END && nemu_state.halt_ret == 0) ||
-    (nemu_state.state == NEMU_QUIT);
+  // 判断是否为正常结束或用户主动退出的情况
+  int good = (nemu_state.state == NEMU_END && nemu_state.halt_ret == 0) || 
+             (nemu_state.state == NEMU_QUIT);
+  // 返回相反的结果，如果上述条件不满足则返回真（表示存在错误状态）
   return !good;
 }
