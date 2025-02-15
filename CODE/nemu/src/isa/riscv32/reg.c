@@ -13,9 +13,10 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
-#include <isa.h>
-#include "local-include/reg.h"
+#include <isa.h>        // 包含ISA相关的头文件
+#include "local-include/reg.h"  // 包含本地寄存器相关的头文件
 
+// RISC-V架构的通用寄存器名称数组
 const char *regs[] = {
   "$0", "ra", "sp", "gp", "tp", "t0", "t1", "t2",
   "s0", "s1", "a0", "a1", "a2", "a3", "a4", "a5",
@@ -23,9 +24,23 @@ const char *regs[] = {
   "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"
 };
 
+// 显示寄存器状态的函数（当前为空实现）
 void isa_reg_display() {
+  // 实现细节待补充
 }
 
+// 根据寄存器名称字符串获取寄存器值的函数
 word_t isa_reg_str2val(const char *s, bool *success) {
+  // 遍历寄存器名称数组查找匹配项
+  for (int i = 0; i < sizeof(regs) / sizeof(regs[0]); i++) {
+    if (strcmp(s, regs[i]) == 0) {
+      // 找到匹配项后，尝试获取寄存器值
+      word_t reg_value = /* 获取寄存器值的方法 */ 0;
+      *success = true;
+      return reg_value;
+    }
+  }
+  // 如果没有找到匹配项，设置失败标志并返回默认值
+  *success = false;
   return 0;
 }
