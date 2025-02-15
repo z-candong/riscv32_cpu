@@ -463,6 +463,39 @@ int main() {
 void isa_reg_display(void);
 ```
 执行info r之后, 就调用isa_reg_display(), 在里面直接通过printf()输出所有寄存器的值即可. 如果你从来没有使用过printf(), 请RTFM或者STFW. 如果你不知道要输出什么, 你可以参考GDB中的输出.  
+下面是nemu/src/isa/riscv32/reg.c的代码:  
+```
+// 包含与指令集架构相关的类型定义、常量和函数声明
+#include <isa.h>
+
+// 包含与寄存器相关的特定信息或函数声明
+#include "local-include/reg.h"
+
+// 字符串数组，包含RISC-V架构中所有通用寄存器的名字
+const char *regs[] = {
+  "$0", "ra", "sp", "gp", "tp", "t0", "t1", "t2",
+  "s0", "s1", "a0", "a1", "a2", "a3", "a4", "a5",
+  "a6", "a7", "s2", "s3", "s4", "s5", "s6", "s7",
+  "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"
+};
+
+// 函数声明：显示当前寄存器的状态
+// 目前没有实现具体的功能
+void isa_reg_display() {
+  // 可以在这里添加具体的实现来打印寄存器的状态
+}
+
+// 函数声明：将寄存器名称转换为其对应的整数值
+// 参数 s 是寄存器名称的字符串指针
+// 参数 success 是指向布尔变量的指针，用于指示转换是否成功
+// 返回值是寄存器对应的整数值
+// 目前没有实现具体的功能，只是简单地返回了0
+word_t isa_reg_str2val(const char *s, bool *success) {
+  // 可以在这里添加具体的实现来进行字符串到寄存器编号的映射
+  *success = false; // 设置转换失败标志
+  return 0; // 返回默认值
+}
+```
 
 ## 扫描内存
 
