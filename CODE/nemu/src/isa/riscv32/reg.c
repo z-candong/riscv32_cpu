@@ -24,7 +24,7 @@ const char *regs[] = {
   "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"
 };
 
-// 显示寄存器状态的函数（当前为空实现）
+// 显示寄存器状态的函数
 void isa_reg_display() {
   // 补充代码:  
   for(int i=0; i < MUXDEF(CONFIG_RVE, 16, 32); i++) {
