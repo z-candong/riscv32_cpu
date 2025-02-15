@@ -31,16 +31,5 @@ void isa_reg_display() {
 
 // 根据寄存器名称字符串获取寄存器值的函数
 word_t isa_reg_str2val(const char *s, bool *success) {
-  // 遍历寄存器名称数组查找匹配项
-  for (int i = 0; i < sizeof(regs) / sizeof(regs[0]); i++) {
-    if (strcmp(s, regs[i]) == 0) {
-      // 找到匹配项后，尝试获取寄存器值
-      word_t reg_value = /* 获取寄存器值的方法 */ 0;
-      *success = true;
-      return reg_value;
-    }
-  }
-  // 如果没有找到匹配项，设置失败标志并返回默认值
-  *success = false;
   return 0;
 }
