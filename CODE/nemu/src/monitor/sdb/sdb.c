@@ -81,12 +81,11 @@ static int cmd_si(char *args) {
 
 // new_func: cmd_info
 static int cmd_info(char *args) {
-	if ((arg == NULL) || (strcmp(arg, 'r') == 0)) {
+	if ((args == NULL) || (strcmp(args, "r") == 0)) {
 		isa_reg_display();
 	}
 return 0;
 }
-
 
 // 声明 `help` 命令处理器函数
 static int cmd_help(char *args);
