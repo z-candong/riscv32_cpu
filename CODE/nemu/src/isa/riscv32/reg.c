@@ -26,7 +26,10 @@ const char *regs[] = {
 
 // 显示寄存器状态的函数（当前为空实现）
 void isa_reg_display() {
-  // 实现细节待补充
+  // 补充代码:  
+  for(int i=0; i < MUXDEF(CONFIG_RVE, 16, 32); i++) {
+	printf("%-3s = 0x$08x\n", regs[i], gpr(i));
+
 }
 
 // 根据寄存器名称字符串获取寄存器值的函数
