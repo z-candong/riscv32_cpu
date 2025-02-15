@@ -57,6 +57,37 @@ static int cmd_q(char *args) {
   return -1;
 }
 
+// new_func: cmd_si
+static int cmd_si(char *args) {
+	char *endptr;
+	uint64_t n = 1;
+
+	if (args == NULL || *args == '\0') {
+		cpu_exec(n);
+		return 0;
+	}
+
+	n = strtoull(args, &endptr, 0);
+
+	if (*endptr != '\0') {
+		printf("Invalid number format: %s\n", args);
+	  return -1;
+	}
+
+	cpu_exec(n); 
+	
+	return 0;
+}
+
+// new_func: cmd_info
+static int cmd_info(char *args) {
+	if ((arg == NULL) || (strcmp(arg, 'r') == 0)) {
+		isa_reg_display();
+	}
+return 0;
+}
+
+
 // 声明 `help` 命令处理器函数
 static int cmd_help(char *args);
 
@@ -71,6 +102,9 @@ static struct {
   { "q", "Exit NEMU", cmd_q },
 
   /* TODO: Add more commands */
+  { "si", "Make the program execute N instructions step by step and then pause. When N is not given, it defaults to 1", cmd_si},
+	{ "info", "Print register or watchpoint information", cmd_info}
+
 };
 
 // 计算命令表的长度
