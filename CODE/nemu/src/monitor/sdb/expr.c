@@ -13,116 +13,135 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
-#include <isa.h>  // 包含与指令集架构相关的定义
-#include <regex.h> // 包含正则表达式处理函数的声明
+#include <isa.h>
 
-// 定义一些令牌类型
+/* We use the POSIX regex functions to process regular expressions.
+ * Type 'man regex' for more information about POSIX regex functions.
+ */
+#include <regex.h>
+
+// 定义一些特殊的token类型
 enum {
-  TK_NOTYPE = 256, // 无类型令牌
-  TK_EQ,           // 等于号
+  TK_NOTYPE = 256, // 没有特定类型的token
+  TK_EQ,           // 等于号（==）
+
   /* TODO: Add more token types */
+
 };
 
-// 规则结构体定义
+// 定义规则结构体，包含正则表达式和对应的token类型
 static struct rule {
-  const char *regex; // 正则表达式
-  int token_type;    // 对应的令牌类型
+  const char *regex;   // 正则表达式字符串
+  int token_type;      // 对应的token类型
 } rules[] = {
-  {" +", TK_NOTYPE},    // 匹配空格
-  {"\\+", '+'},         // 匹配加号
-  {"==", TK_EQ},        // 匹配等于号
+
   /* TODO: Add more rules.
    * Pay attention to the precedence level of different rules.
    */
+
+  {" +", TK_NOTYPE},    // 匹配空格
+  {"\\+", '+'},         // 匹加号
+  {"==", TK_EQ},        // 匹配等于号（==）
 };
 
-// 计算规则数组的长度
+// 计算rules数组的长度
 #define NR_REGEX ARRLEN(rules)
 
-// 存储编译后正则表达式的数组
+// 存储编译后的正则表达式
 static regex_t re[NR_REGEX] = {};
 
-// 初始化所有规则的正则表达式
+/* 规则会被多次使用，因此我们只在第一次使用前编译一次。
+ */
 void init_regex() {
   int i;
-  char error_msg[128]; // 错误消息缓冲区
+  char error_msg[128];
   int ret;
 
+  // 遍历所有规则并编译它们
   for (i = 0; i < NR_REGEX; i ++) {
-    ret = regcomp(&re[i], rules[i].regex, REG_EXTENDED); // 编译正则表达式
+    ret = regcomp(&re[i], rules[i].regex, REG_EXTENDED);
     if (ret != 0) {
       regerror(ret, &re[i], error_msg, 128); // 获取错误信息
-      panic("regex compilation failed: %s\n%s", error_msg, rules[i].regex); // 输出错误信息并终止程序
+      panic("regex compilation failed: %s\n%s", error_msg, rules[i].regex);
     }
   }
 }
 
-// 令牌结构体定义
+// 定义Token结构体，包含token类型和字符串表示
 typedef struct token {
-  int type;       // 令牌类型
+  int type;       // token类型
   char str[32];   // 字符串表示
 } Token;
 
-// 全局变量：令牌数组和当前令牌数量计数器
-static Token tokens[32] __attribute__((used)) = {}; // 令牌数组
-static int nr_token __attribute__((used))  = 0;     // 当前令牌数量
+// 存储识别出的token
+static Token tokens[32] __attribute__((used)) = {};
+// 当前识别出的token数量
+static int nr_token __attribute__((used))  = 0;
 
-// 将输入字符串解析成一系列令牌
+/* 将输入字符串e分解为token
+ * 返回true如果成功，否则返回false
+ */
 static bool make_token(char *e) {
-  int position = 0; // 当前解析位置
+  int position = 0; // 当前处理的位置
   int i;
-  regmatch_t pmatch; // 匹配结果
+  regmatch_t pmatch;
 
-  nr_token = 0; // 清空令牌计数器
+  nr_token = 0; // 初始化token数量
 
-  while (e[position] != '\0') { // 遍历输入字符串
-    for (i = 0; i < NR_REGEX; i ++) { // 尝试匹配每个规则
-      if (regexec(&re[i], e + position, 1, &pmatch, 0) == 0 && pmatch.rm_so == 0) { // 成功匹配
-        char *substr_start = e + position; // 匹配子字符串起始位置
-        int substr_len = pmatch.rm_eo;     // 匹配子字符串长度
+  // 循环直到字符串结束
+  while (e[position] != '\0') {
+    /* 依次尝试匹配所有的规则 */
+    for (i = 0; i < NR_REGEX; i ++) {
+      // 如果当前规则匹配成功且从当前位置开始匹配
+      if (regexec(&re[i], e + position, 1, &pmatch, 0) == 0 && pmatch.rm_so == 0) {
+        char *substr_start = e + position; // 匹配子串的起始位置
+        int substr_len = pmatch.rm_eo;     // 匹配子串的长度
 
+        // 打印日志记录匹配的信息
         Log("match rules[%d] = \"%s\" at position %d with len %d: %.*s",
-            i, rules[i].regex, position, substr_len, substr_len, substr_start); // 日志输出
+            i, rules[i].regex, position, substr_len, substr_len, substr_start);
 
-        position += substr_len; // 更新当前位置
+        position += substr_len; // 更新position到下一个待处理位置
 
-        // 根据令牌类型执行不同操作
+        // 根据不同的token类型执行相应的操作
         switch (rules[i].token_type) {
           case '+':
-            tokens[nr_token].type = '+';
-            strncpy(tokens[nr_token++].str, substr_start, substr_len);
+            tokens[nr_token].type = rules[i].token_type; // 设置token类型
+            snprintf(tokens[nr_token++].str, sizeof(tokens[nr_token - 1].str), "%.*s", substr_len, substr_start); // 设置token字符串
             break;
           case TK_EQ:
-            tokens[nr_token].type = TK_EQ;
-            strncpy(tokens[nr_token++].str, substr_start, substr_len);
+            tokens[nr_token].type = rules[i].token_type;
+            snprintf(tokens[nr_token++].str, sizeof(tokens[nr_token - 1].str), "%.*s", substr_len, substr_start);
             break;
           default:
-            // 处理其他令牌类型
-            break;
+            TODO(); // 处理其他token类型
         }
 
-        break; // 跳出循环
+        break;
       }
     }
 
-    if (i == NR_REGEX) { // 没有任何规则匹配
-      printf("no match at position %d\n%s\n%*.s^\n", position, e, position, ""); // 输出错误信息
-      return false; // 返回错误
+    // 如果没有找到匹配的规则
+    if (i == NR_REGEX) {
+      printf("no match at position %d\n%s\n%*.s^\n", position, e, position, "");
+      return false;
     }
   }
 
-  return true; // 返回成功
+  return true;
 }
 
-// 解析并计算输入表达式
+/* 解析并计算表达式的值
+ * 成功时设置success为true并返回结果，失败时设置success为false并返回0
+ */
 word_t expr(char *e, bool *success) {
-  if (!make_token(e)) { // 生成令牌失败
+  if (!make_token(e)) { // 如果无法将表达式分解为token
     *success = false;
     return 0;
   }
 
   /* TODO: Insert codes to evaluate the expression. */
-  TODO(); // 计算表达式的值
+  TODO();
 
   return 0;
 }
