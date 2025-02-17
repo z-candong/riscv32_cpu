@@ -467,20 +467,26 @@ case TYPE_I: src1R(); immI(); break;
 |*除了nemu/src/device和nemu/src/isa/$ISA/system之外, NEMU的其它代码你都已经有能力理解了.*|
 |*讲义中没有提到的文件也需要阅读, 尝试尽可能地理解每一处细节. 在遇到bug时, 这些细节会成为帮助调试的线索.*|
 ***
+
+
 ### 运行第一个C程序
 首先克隆一个新的子项目am-kernels, 里面包含了一些测试程序:
 ```Bash
-cd ics2024
+cd ysyx-workbench
 bash init.sh am-kernels
 ```
+注意: 在一生一芯项目中将其克隆至ysyx-workbench/目录下, 在原PA项目中则是克隆至ics2024/目录下.  
+
 PA2的第一个任务, 就是实现若干条指令, 使得第一个简单的C程序可以在NEMU中运行起来.  
 这个简单的C程序是am-kernels/tests/cpu-tests/tests/dummy.c, 它什么都不做就直接返回了.  
+
 ***
 |***实验必做题: 准备交叉编译环境***|
 |----------------------------|
 |*如果你选择的ISA不是x86, 你还需要准备相应的gcc和binutils, 才能正确地进行编译.*|
-|*针对riscv32(64):*|
-|*``apt-get install g++-riscv64-linux-gnu binutils-riscv64-linux-gnu``*|
+|*本项目采用riscv32(64), 在终端运行如下指令:*|
+|*``sudo apt-get install g++-riscv64-linux-gnu binutils-riscv64-linux-gnu``*|
+***
 
 在``am-kernels/tests/cpu-tests/``目录下键入
 ```Bash
@@ -488,14 +494,87 @@ make ARCH=$ISA-nemu ALL=dummy run
 ```
 编译dummy程序, 并启动NEMU运行它.  
 
+>修复riscv32编译错误:  
+>如果你选择的是riscv32, 并在编译dummy程序时报告了如下错误:  
+>```
+>/usr/riscv64-linux-gnu/include/bits/wordsize.h:28:3: error: #error "rv32i-based targets are not supported"
+>```
+>则需要使用sudo权限修改以下文件:  
+>```
+>--- /usr/riscv64-linux-gnu/include/bits/wordsize.h 原始文件路径
+>+++ /usr/riscv64-linux-gnu/include/bits/wordsize.h 修改后文件路径
+>@@ -25,5 +25,5 @@ 从第25行开始, 接下来的5行有差异
+> #if __riscv_xlen == 64
+> # define __WORDSIZE_TIME64_COMPAT32 1
+> #else
+>-# error "rv32i-based targets are not supported" 原始文件中, 架构非64位则抛出编译错误
+>+# define __WORDSIZE_TIME64_COMPAT32 0 修改后文件中, 定义宏并赋值
+> #endif
+>```
+>如果报告的是如下错误:   
+>```
+>/usr/riscv64-linux-gnu/include/gnu/stubs.h:8:11: fatal error: gnu/stubs-ilp32.h: No such file or directory
+>```
+>则需要使用sudo权限修改以下文件:  
+>```
+>--- /usr/riscv64-linux-gnu/include/gnu/stubs.h
+>+++ /usr/riscv64-linux-gnu/include/gnu/stubs.h
+>@@ -5,5 +5,5 @@
+> #include <bits/wordsize.h>
+>
+> #if __WORDSIZE == 32 && defined __riscv_float_abi_soft
+>-# include <gnu/stubs-ilp32.h>
+>+//# include <gnu/stubs-ilp32.h>
+> #endif
+>```
 
+事实上, 并不是每一个程序都可以在NEMU中运行, abstract-machine子项目专门用于编译出能在NEMU中运行的程序, 我们在下一小节中会再来介绍它.  
+
+在NEMU中运行dummy程序, 你会发现NEMU输出以下信息(以riscv32为例):  
+```
+invalid opcode(PC = 0x80000000):
+        13 04 00 00 17 91 00 00 ...
+        00000413 00009117...
+There are two cases which will trigger this unexpected exception:
+1. The instruction at PC = 0x80000000 is not implemented.
+2. Something is implemented incorrectly.
+Find this PC(0x80000000) in the disassembling result to distinguish which case it is.
+
+If it is the first case, see
+       _                         __  __                         _ 
+      (_)                       |  \/  |                       | |
+  _ __ _ ___  ___ ________   __ | \  / | __ _ _ __  _   _  __ _| |
+ | '__| / __|/ __|______\ \ / / | |\/| |/ _` | '_ \| | | |/ _` | |
+ | |  | \__ \ (__        \ V /  | |  | | (_| | | | | |_| | (_| | |
+ |_|  |_|___/\___|        \_/   |_|  |_|\__,_|_| |_|\__,_|\__,_|_|
+
+for more details.
+
+If it is the second case, remember:
+* The machine is always right!
+* Every line of untested code is always wrong!
+```
+这是因为你还没有实现0x00000413的指令, 因此, 你需要开始在NEMU中添加指令了.  
 
 ***
+|***选做思考题: 为什么执行了未实现指令会出现上述报错信息***|
+|-----------------------------------------------|
+|*RTFSC, 理解执行未实现指令的时候, NEMU具体会怎么做.*|
+***
 
+要实现哪些指令才能让dummy在NEMU中运行起来呢? 答案就在其反汇编结果(am-kernels/tests/cpu-tests/build/dummy-$ISA-nemu.txt)中: 你只需实现那些目前还没实现的指令就可以了. 框架代码引入的模式匹配规则, 对在NEMU中实现客户指令提供了很大的便利, 为了实现一条新指令, 你只需要在nemu/src/isa/$ISA/inst.c中添加正确的模式匹配规则即可.
 
-```C
+>**交叉编译工具链:**  
+>如果你选择的ISA不是x86, 在查看客户程序的二进制信息(如objdump, readelf等)时, 需要使用相应的交叉编译版本, 如mips-linux-gnu-objdump, riscv64-linux-gnu-readelf等. 特别地, 如果你选择的ISA是riscv32, 也可以使用riscv64为前缀的交叉编译工具链.
 
-```
+这里要再次强调, 你务必通过RTFM来查阅指令的功能, 不能想当然. 手册中给出了指令功能的完整描述(包括做什么事, 怎么做的, 有什么影响), 一定要仔细阅读其中的每一个单词, 对指令功能理解错误和遗漏都会给以后的调试带来巨大的麻烦.
+
+***
+|***实验必做题: 运行第一个客户程序***|
+|-----------------------------------------------|
+|*在NEMU中实现上文提到的指令, 具体细节请务必参考手册. 实现成功后, 在NEMU中运行客户程序dummy, 你将会看到HIT GOOD TRAP的信息. 如果你没有看到这一信息, 说明你的指令实现不正确, 你可以使用PA1中实现的简易调试器帮助你调试.*|
+***
+
 
 ### 运行更多的程序
 未测试代码永远是错的, 因此需要更多的测试用例来测试你的NEMU。  
