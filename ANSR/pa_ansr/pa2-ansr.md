@@ -43,10 +43,10 @@
 >由于string和hello-str还需要实现额外的内容才能运行(具体在后续小节介绍), 目前可以先使用其它测试用例进行测试.  
 ***
 
-除string和hello-str以外的测试用例实现: 
-1.dummy.c: 增加指令 addi, jal, jalr, sw
-2.add.c: 增加指令 lw, add, sub, sltiu, beq, bne
-3.bit.c: 增加指令 sh, srai, 
+除string和hello-str以外的测试用例实现:   
+1.dummy.c: 增加指令 addi, jal, jalr, sw  
+2.add.c: 增加指令 lw, add, sub, sltiu, beq, bne  
+3.bit.c: 增加指令 sh, srai, andi,    
 
 
 
