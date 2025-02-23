@@ -44,9 +44,41 @@
 ***
 
 除string和hello-str以外的测试用例实现:   
-1.dummy.c: 增加指令 addi, jal, jalr, sw  
-2.add.c: 增加指令 lw, add, sub, sltiu, beq, bne  
-3.bit.c: 增加指令 sh, srai, andi,    
+1.dummy.c: 增加指令 addi, jal, jalr, sw  PASS  
+2.add.c: 增加指令 lw, add, sub, sltiu, beq, bne  PASS    
+3.bit.c: 增加指令 sh, srai, andi, sll, and, sltu, xori, lui, or  PASS  
+4.crc32.c: 增加指令 srli, xor, bgeu, slli  PASS  
+5.fib.c: PASS  
+6.leap-year.c: 增加指令 rem  PASS  
+7.matrix-mul.c: 增加指令 mul  PASS  
+8.mersenne.c: 增加指令 blt, mulh, remu, divu, srl, bltu  PASS
+9.mov-c.c: PASS  
+10.mul-longlong.c: FAIL    
+11.pascal.c: PASS  
+12.quick-sort.c: PASS  
+13.select-sort.c: PASS  
+14.shuixianhua.c: FAIL  
+15.prime.c: PASS
+16.recursion.c: FAIL
+17.shift.c: FAIL
+18.string.c: 待定。  
+19.sum.c: PASS。
+20.to-lower-case.c: PASS  
+21.wanshu.c: PASS  
+22.add-longlong.c: PASS
+23.bubble-sort.c: PASS
+24.div.c: FAIL
+25.fact.c: PASS
+26.goldbach.c: PASS
+27.if-else.c: PASS    
+28.load-store.c: FAIL   
+29.max.c: PASS         
+30.min3.c: PASS      
+31.movsx.c: PASS  
+32.sub-longlong.c: PASS        
+33.switch.c: PASS  
+34.unalign.c: PASS
+35.hello-str.c 待定。   
 
 
 
