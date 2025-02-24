@@ -53,31 +53,31 @@
 7.matrix-mul.c: 增加指令 mul  PASS  
 8.mersenne.c: 增加指令 blt, mulh, remu, divu, srl, bltu  PASS
 9.mov-c.c: PASS  
-10.mul-longlong.c: FAIL    
+10.mul-longlong.c: PASS    
 11.pascal.c: PASS  
 12.quick-sort.c: PASS  
-13.select-sort.c: PASS  
-14.shuixianhua.c: 增加指令 div  PASS  
-15.prime.c: PASS
-16.recursion.c: PASS
+13.select-sort.c: PASS    
+14.shuixianhua.c: 增加指令 div  PASS    
+15.prime.c: PASS  
+16.recursion.c: PASS  
 17.shift.c: 增加指令 sra  PASS  
 18.string.c: 待定。  
-19.sum.c: PASS。
-20.to-lower-case.c: PASS  
-21.wanshu.c: PASS  
-22.add-longlong.c: PASS
-23.bubble-sort.c: PASS
-24.div.c: PASS
-25.fact.c: PASS
-26.goldbach.c: PASS
+19.sum.c: PASS   
+20.to-lower-case.c: PASS    
+21.wanshu.c: PASS   
+22.add-longlong.c: PASS  
+23.bubble-sort.c: PASS  
+24.div.c: PASS  
+25.fact.c: PASS  
+26.goldbach.c: PASS  
 27.if-else.c: PASS    
-28.load-store.c: 增加指令 lh   
+28.load-store.c: 增加指令 lh, lhu  PASS   
 29.max.c: PASS         
-30.min3.c: PASS      
-31.movsx.c: PASS  
-32.sub-longlong.c: PASS        
+30.min3.c: PASS       
+31.movsx.c: PASS   
+32.sub-longlong.c: PASS          
 33.switch.c: PASS  
-34.unalign.c: PASS
+34.unalign.c: PASS  
 35.hello-str.c 待定。   
 
 
